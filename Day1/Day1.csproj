@@ -8,10 +8,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <None Update="day1a.txt">
+      <None Update="day1.txt">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
-      <None Update="day1b.txt">
+      <None Update="day1_sample.txt">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>
