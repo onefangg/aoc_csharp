@@ -1,5 +1,5 @@
-﻿var inputData = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sample.txt"));
-// var inputData = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "day3.txt"));
+﻿// var inputData = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sample.txt"));
+var inputData = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "day3.txt"));
 
 
 int SolveForTwoBatteries(string[] data)
@@ -39,7 +39,7 @@ long FindLargestNumberForBase(string num, int searchPath = 12)
     List<int> digits = [];
 
     var l = 0;
-    var r = maxLen - searchPath - 1;
+    var r = maxLen - searchPath;
     for (int i = 0; i < searchPath; i++)
     {
         var curr = int.Parse(num[l].ToString());
@@ -53,10 +53,7 @@ long FindLargestNumberForBase(string num, int searchPath = 12)
                 curr = parsed;
                 currIdx = j;
             }
-        }
-        // Console.WriteLine($"Yoinked index: {currIdx} for value {curr}");
-
-        // Console.WriteLine($"{l} to {r}");        
+        }       
         digits.Add(curr);
         l = currIdx + 1;
         r = maxLen - 1 - (searchPath -  digits.Count -1);
@@ -81,5 +78,4 @@ long SolveForTwelveBatteries(string[] data)
 
 Console.WriteLine($"Part 1: {SolveForTwoBatteries(inputData)}");
 Console.WriteLine($"Part 2: {SolveForTwelveBatteries(inputData)}");
-Console.WriteLine($"Part 2: {SolveForTwelveBatteries(["318919111111192345"])}");
 
