@@ -8,9 +8,12 @@ double Calculate3DEuclidean(long x1, long x2, long y1, long y2, long z1, long z2
 
 var junctionBoxes = inputData.Select(x => x.Split(',').Select(long.Parse).ToArray()).ToArray();
 
+// WILDLY UNOPTIMISED SOLUTIONS :)
 var (distancesMatrix, circuitsConnection) = GetDistanceMatrixAndConnectedGraph(junctionBoxes, inputData.Length);
 var partOne = SearchConnectedComponentsForPartOne(circuitsConnection, distancesMatrix, 1000);
 Console.WriteLine($"Part 1: {partOne}");
+var partTwo = SearchConnectedComponentsForPartTwo(circuitsConnection, distancesMatrix, junctionBoxes, inputData.Length);
+Console.WriteLine($"Part 2: {partTwo.Item1 * partTwo.Item2}");
 
 (double[,], int[,]) GetDistanceMatrixAndConnectedGraph(long[][] inputJunctionBoxes, int n)
 {
@@ -98,4 +101,69 @@ int SearchConnectedComponentsForPartOne(int[,] inputCircuits, double[,] distance
         sizes.Add(connectedComponents.Count);
     }
     return sizes.OrderDescending().Take(3).Aggregate(1, (a, b) => a * b);
+}
+
+(long, long) SearchConnectedComponentsForPartTwo(int[,] inputCircuits, double[,] distanceMatrix, long[][] inputJunctionBoxes, int n)
+{
+    int[,] circuits = (int[,])inputCircuits.Clone();
+    double[,] distances = (double[,])distanceMatrix.Clone();
+    
+    while (true)
+    {
+        
+        var minDistance = double.MaxValue;
+        var conn = (-1, -1);
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                if (i==j) continue;
+                var currDistance = distances[i, j];
+                if (currDistance < minDistance)
+                {
+                    conn = (i, j);
+                    minDistance = currDistance;
+                }
+            }
+        }
+
+    
+        if (conn.Item1 == -1 || conn.Item2 == -1) break;
+    
+        circuits[conn.Item1, conn.Item2] = 1;
+        circuits[conn.Item2, conn.Item1] = 1;
+        distances[conn.Item1, conn.Item2] = double.MaxValue;
+        distances[conn.Item2, conn.Item1] = double.MaxValue;
+
+        int size = 0;
+        int[,]  visited = new int[circuits.GetLength(0), circuits.GetLength(1)];
+    
+        HashSet<int> connectedComponents = new HashSet<int>();
+        Queue<int> queue = [];
+        queue.Enqueue(conn.Item1);
+        
+        while (queue.Count > 0)
+        {
+            var curr = queue.Dequeue();
+            
+            connectedComponents.Add(curr);
+            var getNeighbors = Enumerable.Range(0, circuits.GetLength(1)).
+                Where(x=>circuits[curr, x] == 1).Select(x => x).ToArray();
+            foreach (var neighbor in getNeighbors) 
+            {
+                if (visited[curr, neighbor] == 1) continue; 
+                visited[curr, neighbor] = 1;
+                visited[neighbor, curr] = 1;
+                queue.Enqueue(neighbor);
+            }
+        }
+        
+        if (connectedComponents.Count == n)
+        {
+            return (inputJunctionBoxes[conn.Item1][0], inputJunctionBoxes[conn.Item2][0]); 
+        }
+        
+    }
+
+    return (-1, -1);
 }
