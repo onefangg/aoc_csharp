@@ -4,7 +4,7 @@
 var points = inputData.Select(line => line.Split(",")).Select(x
     => new Point { x = long.Parse(x[0]), y = long.Parse(x[1]) }).ToArray();
 
-HashSet<Line> lines = [];
+List<Line> lines = [];
 
 long maxArea = 0;
 for (int i = 0; i < points.Length; i++)
@@ -28,24 +28,55 @@ for (int i = 0; i < points.Length; i++)
         .OrderBy(p => Math.Abs(currPoint.y - p.y)).First();
     var closestVertical = points.Where(p => p.y == currPoint.y && p.x != currPoint.x)
         .OrderBy(p => Math.Abs(currPoint.x - p.x)).First();
-    
-    var conflictHori = lines.Add(new Line { PointOne = currPoint, PointTwo = closestHorizontal});
-    var conflictVert = lines.Add(new Line { PointOne = currPoint, PointTwo = closestVertical});
-    if (!conflictHori || !conflictVert)
-    {
-        throw new Exception("cannot happen >:(");
-    }
+    lines.Add(new Line { PointOne = currPoint, PointTwo = closestHorizontal});
+    lines.Add(new Line { PointOne = currPoint, PointTwo = closestVertical});
 }
 
 Console.WriteLine($"Part 1: {maxArea}");
 
 
-
-var pop = lines.ToArray()[0];
-foreach (var line in lines)
+long maxAreaForPartTwo = 0;
+for (int i = 0; i < points.Length; i++)
 {
-    Console.WriteLine( line.DoesIntersect(pop));   ;
+    var currPoint = points[i];
+    for (int j = 0; j < points.Length; j++)
+    {
+        if (i == j) continue;
+        var toPoint = points[j];
+        var currLine = new Line { PointOne = currPoint, PointTwo = toPoint };
+        var oppCurrLine = new Line
+        {
+            PointOne = new Point { x = toPoint.x, y = currPoint.y },
+            PointTwo = new Point { x = currPoint.x, y = toPoint.y }
+        };
+
+        bool doesIntersect = false;
+        foreach (var line in lines)
+        {
+            if (Math.Abs(line.Gradient - currLine.Gradient) < 10e-5) continue;
+
+
+            if (line.CoordinatesMatching(currLine) || line.CoordinatesMatching(oppCurrLine)) continue;
+            
+            if (line.DoesIntersect(currLine) || line.DoesIntersect(oppCurrLine))
+            {
+                doesIntersect = true;
+                break;
+            }
+        }
+        if (doesIntersect) continue;
+        
+        long area = (Math.Abs(toPoint.x - currPoint.x + 1) * (Math.Abs(toPoint.y - currPoint.y) + 1));
+        if (area > maxAreaForPartTwo)
+        {
+            maxAreaForPartTwo = area;
+        }
+    }
 }
+
+
+Console.WriteLine($"Part 2: {maxAreaForPartTwo}");
+
 
 public record Point
 {
@@ -64,9 +95,9 @@ public record Line
     
     // Gradient * x - Point.x * Gradient + PointOne.y = Gradient * x - Point.x * Gradient + PointOne.y
     
-    public double Gradient  => (PointOne.x == PointTwo.x) 
+    public double Gradient  =>  (PointOne.x == PointTwo.x) 
         ? 0 
-        : (PointOne.y - PointTwo.y) / (PointOne.x - PointTwo.x);
+        : (double)(PointOne.y - PointTwo.y) / (PointOne.x - PointTwo.x);
     public bool DoesIntersect(Line other)
     {
         var intersectionX  =
@@ -77,4 +108,31 @@ public record Line
         var otherIntersectionY = intersectionX * other.Gradient - other.PointOne.x * other.Gradient + other.PointOne.y;
         return Math.Abs(otherIntersectionY - intersectionY) < 10e-5;
     }
+    
+    public bool CoordinatesMatching(Line other)
+    {
+        return PointOne == other.PointOne || PointOne == other.PointTwo  || PointTwo == other.PointOne|| PointTwo == other.PointTwo;
+    }
+}
+
+
+public record Rectangle
+{
+    // assumes diagonally opposite
+    public Rectangle(Point pointOne, Point pointTwo)
+    {
+        var otherCorner = new Point { x = pointOne.x, y = pointTwo.y };
+        var otherCornerTwo = new Point { x = pointTwo.x, y = pointOne.y };
+        
+        Lines = [
+            new Line{ PointOne = pointOne, PointTwo = otherCorner},
+            new Line{ PointOne = otherCorner, PointTwo = pointTwo},
+            new Line{ PointOne = pointTwo, PointTwo = otherCornerTwo},
+            new Line{ PointOne = otherCornerTwo, PointTwo = pointOne},
+        ];
+        Corners = [pointOne, otherCorner, pointTwo, otherCornerTwo];
+    }
+    public Line[] Lines { get; set; }
+    public Point[] Corners { get; set; }
+    
 }
