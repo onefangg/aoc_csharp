@@ -43,22 +43,13 @@ for (int i = 0; i < points.Length; i++)
     {
         if (i == j) continue;
         var toPoint = points[j];
-        var currLine = new Line { PointOne = currPoint, PointTwo = toPoint };
-        var oppCurrLine = new Line
-        {
-            PointOne = new Point { x = toPoint.x, y = currPoint.y },
-            PointTwo = new Point { x = currPoint.x, y = toPoint.y }
-        };
-
+        var rect = new Rectangle(currPoint, toPoint);
         bool doesIntersect = false;
         foreach (var line in lines)
         {
-            if (Math.Abs(line.Gradient - currLine.Gradient) < 10e-5) continue;
+            if (rect.DoesExactIntersect(line)) continue;
 
-
-            if (line.CoordinatesMatching(currLine) || line.CoordinatesMatching(oppCurrLine)) continue;
-            
-            if (line.DoesIntersect(currLine) || line.DoesIntersect(oppCurrLine))
+            if (rect.DoesIntersect(line) || line.DoesIntersect(rect.DiagonalLine)) ;
             {
                 doesIntersect = true;
                 break;
@@ -90,14 +81,22 @@ public record Line
     public Point PointOne { get; set; }
     public Point PointTwo { get; set; }
     
+    public bool IsHorizontal => (PointOne.y == PointTwo.y); 
+    public bool IsVertical => (PointOne.x == PointTwo.x); 
+    
+    public long LowerY => PointOne.y > PointTwo.y ? PointTwo.y : PointOne.y;
+    public long UpperY => PointOne.y <= PointTwo.y ? PointTwo.y : PointOne.y;
+    public long LowerX => PointOne.x > PointTwo.x ? PointTwo.x : PointOne.x;
+    public long UpperX => PointOne.x <= PointTwo.x ? PointTwo.x : PointOne.x;
+        
+    public double Gradient  =>  (PointOne.x == PointTwo.x) 
+        ? 0 
+        : (double)(PointOne.y - PointTwo.y) / (PointOne.x - PointTwo.x);
+    
     // y - PointOne.y = Gradient * (x - PointOne.x)
     // y = Gradient * x - PointOne.x * Gradient + PointOne.y
     
     // Gradient * x - Point.x * Gradient + PointOne.y = Gradient * x - Point.x * Gradient + PointOne.y
-    
-    public double Gradient  =>  (PointOne.x == PointTwo.x) 
-        ? 0 
-        : (double)(PointOne.y - PointTwo.y) / (PointOne.x - PointTwo.x);
     public bool DoesIntersect(Line other)
     {
         var intersectionX  =
@@ -107,6 +106,23 @@ public record Line
          
         var otherIntersectionY = intersectionX * other.Gradient - other.PointOne.x * other.Gradient + other.PointOne.y;
         return Math.Abs(otherIntersectionY - intersectionY) < 10e-5;
+    }
+
+
+    public bool DoesAxisIntersect(Line other)
+    {
+        if (CoordinatesMatching(other)) return false;
+        if (IsHorizontal && other.IsHorizontal) return false;
+        if (IsVertical && other.IsVertical) return false;
+
+        if (IsVertical)
+        {
+            return other.PointOne.y > LowerY && other.PointOne.y < UpperY;
+            // && (UpperX != other.PointOne.x && UpperX != other.PointTwo.x);
+        }
+
+        return other.PointOne.x > LowerX && other.PointOne.x < UpperX;
+        // && (UpperY != other.PointOne.y && UpperY != other.PointTwo.y);
     }
     
     public bool CoordinatesMatching(Line other)
@@ -131,8 +147,21 @@ public record Rectangle
             new Line{ PointOne = otherCornerTwo, PointTwo = pointOne},
         ];
         Corners = [pointOne, otherCorner, pointTwo, otherCornerTwo];
+        DiagonalLine = new Line { PointOne = pointOne, PointTwo = pointTwo };
     }
+    
+    public Line DiagonalLine { get; set; }
     public Line[] Lines { get; set; }
     public Point[] Corners { get; set; }
+
+    public bool DoesIntersect(Line line)
+    {
+        return Lines.Any(x => x.DoesAxisIntersect(line));
+    }
+
+    public bool DoesExactIntersect(Line line)
+    {
+        return Lines.Any(x => x.CoordinatesMatching(line));
+    }
     
 }

@@ -1,7 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 
-// var inputData = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sample.txt"));
-var inputData = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "day10.txt"));
+var inputData = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sample.txt"));
+// var inputData = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "day10.txt"));
 
 
 var machines = new List<Machine>();
@@ -35,6 +35,7 @@ for (int i = 0; i < inputData.Length; i++)
 
 
 var partOne = 0;
+// THIS IS SO SLOW >:(
 for (int i = 0; i < machines.Count; i++)
 {
     Console.WriteLine($"machine {i}: {machines[i]}");
@@ -64,7 +65,7 @@ int SolveMachine(Machine machine)
                 int[] nextState = state.State.Select(x => x).ToArray();
                 foreach (var pos in sw)
                 {
-                    nextState[pos] = nextState[pos] == 1 ? 0 : 1;
+                    nextState[pos] ^= 1;
                 }
 
 
