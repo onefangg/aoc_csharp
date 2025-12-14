@@ -1,7 +1,8 @@
 ﻿using System.Text.RegularExpressions;
+using Microsoft.Z3;
 
-var inputData = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sample.txt"));
-// var inputData = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "day10.txt"));
+// var inputData = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sample.txt"));
+var inputData = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "day10.txt"));
 
 
 var machines = new List<Machine>();
@@ -44,8 +45,73 @@ for (int i = 0; i < inputData.Length; i++)
 
 // Console.WriteLine($"Part 1: {machines.Select(SolveMachine).Sum()}");
 
+int partTwo = 0;
+for (int i = 0; i < machines.Count; i++)
+{
+    var result = SolveSwitchesForMachine(machines[i]);
+    partTwo += result;
+}
+Console.WriteLine($"Part 2: {partTwo}");
+int SolveSwitchesForMachine(Machine machine)
+{
+    using var context = new Context();
+    Optimize optimizer = context.MkOptimize();
 
+    var rowX = machine.Switches.Select((x, idx) => context.MkIntConst($"x{idx}")).ToArray();
+    var minObj = context.MkAdd(rowX);
+    
+    optimizer.MkMinimize(minObj);
+    var bulbs = machine.Joltage.Length;
+    var cntMatrix = new int[bulbs][];
+    for (int r = 0; r < bulbs; r++)
+    {
+        cntMatrix[r] = new int[machine.Switches.Count];
+    }
+    
+    for (int c = 0; c < machine.Switches.Count; c++)
+    {
+        var switches = machine.Switches[c];
+        foreach (var sw in switches)
+        {
+            cntMatrix[sw][c] = 1;
+        }
+    }
 
+    
+    foreach (var t in rowX)
+    {
+        optimizer.Add(context.MkGe(t, context.MkInt(0)));
+    }
+    
+    for (int r = 0; r < cntMatrix.Length; r++)
+    {
+        var pivots = cntMatrix[r].Select((x, i) => context.MkMul(context.MkInt(x),rowX[i])).ToArray();
+        var equation = context.MkEq(
+            context.MkAdd(
+                pivots
+            ),
+            context.MkInt(machine.Joltage[r]));
+        optimizer.Add(equation);
+    }
+
+    if (optimizer.Check() == Status.SATISFIABLE)
+    {
+        Model model = optimizer.Model;
+
+        int result = 0;
+        foreach (FuncDecl d in model.ConstDecls)
+        {
+
+            var val = (IntNum)optimizer.Model.ConstInterp(d);
+            result += val.Int;
+        }
+
+        return result;
+    }
+    
+    return -1;
+
+}
 
 
 // Console.WriteLine($"Part 2: {SolveSwitchesForMachine(machines[0])}");
@@ -282,14 +348,15 @@ int SolveMachine(Machine machine)
                 break;
             }
         }
+
         if (shouldBreak) break;
     }
 
     var pq = new Queue<LightState>();
     var visited = new HashSet<LightState>();
-    Dictionary<LightState, int> distance =  [];
+    Dictionary<LightState, int> distance = [];
     var finalState = new LightState() { State = machine.FinalLights };
-    
+
     pq.Enqueue(initialLightState);
     distance[initialLightState] = 0;
     distance[finalState] = int.MaxValue;
@@ -297,23 +364,29 @@ int SolveMachine(Machine machine)
     {
         LightState state = pq.Dequeue();
         var transitions = steps.Where(x => x.From == state).ToArray();
-        if (!visited.Add(state) || state == finalState) { continue; }
-        
-        var neighbours = transitions.Select(x=>x.To).ToArray();
+        if (!visited.Add(state) || state == finalState)
+        {
+            continue;
+        }
+
+        var neighbours = transitions.Select(x => x.To).ToArray();
         foreach (var n in neighbours)
         {
             // Console.WriteLine($"From {state}");
             // Console.WriteLine($"To {n}");
             if (n == finalState)
             {
-                distance[finalState] = distance[finalState] < distance[state] + 1 ? distance[finalState]: distance[state] + 1;
+                distance[finalState] = distance[finalState] < distance[state] + 1
+                    ? distance[finalState]
+                    : distance[state] + 1;
                 continue;
             }
-            distance[n] =  distance[state] + 1;
+
+            distance[n] = distance[state] + 1;
             pq.Enqueue(n);
         }
     }
- 
+
 
     return distance[finalState];
 }
