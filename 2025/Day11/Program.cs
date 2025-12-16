@@ -23,65 +23,47 @@ foreach (var line in inputData)
     }
 }
 
-var endIdx = vertices.Length - 1;
 
-List<List<int>> paths = [];
-List<List<int>> partTwoPath = [];
-Queue<List<int>> queue = [];
-    
-var startIdx = Array.FindIndex(vertices, v => v == "svr"); // flipped to this for Pt2
-var dacIdx = Array.FindIndex(vertices, v => v == "dac");
-var fftIdx = Array.FindIndex(vertices, v => v == "fft");
-queue.Enqueue([startIdx]);
 
-while (queue.Count > 0)
+long Dfs(int[,] inputGraph,  long[] results, int startIdx, int endIdx)
 {
-    var path = queue.Dequeue();
-    var currentIdx = path[^1];
-
-    if (currentIdx == endIdx)
-    {
-        Console.WriteLine("Reached");
-        paths.Add(path);
-        if (path.Contains(dacIdx) && path.Contains(fftIdx))
-        {
-            partTwoPath.Add(path);
-        }
-    }
-
-
-    List<int> neighbours = [];
-    for (int c = 0; c < graph.GetLength(1); c++)
-    {
-        if (graph[currentIdx, c] == 1)
-        {
-            neighbours.Add(c);
-        }
-    }
-
-    foreach (var idx in neighbours)
+    if (startIdx == endIdx) return 1;
+    if (results[startIdx] == long.MaxValue)
     {
         
-        if (path.Contains(idx)) continue;
-        List<int> newPath =
-        [
-            ..path,
-            idx
-        ];
-        queue.Enqueue(newPath);
+        List<int> neighbours = [];
+        for (int c = 0; c < inputGraph.GetLength(1); c++)
+        {
+            if (graph[startIdx, c] == 1)
+            {
+                neighbours.Add(c);
+            }
+        }
+
+        var result = neighbours.Select(x => Dfs(inputGraph, results, x, endIdx)).Sum();
+        results[startIdx] =  result;
+        return result;
     }
+    
+    return results[startIdx];
+    
 }
 
 
-Console.WriteLine($"Part 1:  {paths.Count}");
-Console.WriteLine($"Part 2:  {partTwoPath.Count}");
-Console.WriteLine($"Part 2:  {paths.Count(x=>x.Contains(dacIdx) && x.Contains(fftIdx))}");
+long FindPaths(string[] v, string start, string end)
+{
+    var visited = new long[v.Length];
+    Array.Fill(visited, long.MaxValue);
+    var startIdx = Array.FindIndex(v, x => x == start);
+    var endIdx = Array.FindIndex(v, x => x == end);
+    
+    return Dfs(graph, visited, startIdx, endIdx);
+}
 
-// for (int i = 0; i < graph.GetLength(0); i++)
-// {
-//     for (int j = 0; j < graph.GetLength(1); j++)
-//     {
-//         Console.Write(graph[i, j] + " ");
-//     }   
-//     Console.WriteLine();
-// }
+
+var possiblePath = FindPaths(vertices, "svr", "fft") * FindPaths(vertices, "fft", "dac") *
+                   FindPaths(vertices, "dac", "out")
+                   + FindPaths(vertices, "svr", "dac") * FindPaths(vertices, "dac", "fft") *
+                   FindPaths(vertices, "fft", "out");
+// Console.WriteLine($"Part 1:  {FindPaths(vertices, "you", "out")}");
+Console.WriteLine($"Part 2:  {possiblePath}");
